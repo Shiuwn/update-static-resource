@@ -1,0 +1,60 @@
+body,div{
+  margin: 0;
+  padding: 0;
+}
+body {
+  min-width: 400px;
+  max-height: 300px;
+  overflow: hidden;
+
+}
+#app {
+  padding: 10px 20px;
+}
+ul>li {
+  list-style-type: none;
+}
+.source-list {
+  max-height: 200px;
+  overflow: auto;
+  border: 1px solid #ddd;
+  border-radius: 2px;
+  padding: 10px;
+}
+ul.source-list >li input[type="checkbox"],
+ul.source-list>li .label-name {
+  display: inline-block;
+  vertical-align: middle;
+}
+ul.source-list>li .label-name {
+  font-size: 16px;
+}
+.btn {
+  border: none;
+  outline: none;
+  background-color:dodgerblue;
+  color: #fff;
+  border-radius: 2px;
+  padding: 4px 8px;
+}
+input[type="text"] {
+  border: 1px solid #ddd;
+  outline: none;
+  height: 22px;
+  border-radius: 2px;
+}
+.btn-default {
+  cursor: pointer;
+}
+.rotate {
+  animation: rotating 0.8s ease 0s infinite;
+}
+@keyframes rotating {
+  0% {
+    transform: rotate(180deg);  
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
