@@ -118,9 +118,9 @@
       this.container.innerHTML = tpl
     },
     bindEvent() {
-      var listDom, checkboxList, source
+      var listDom, checkboxList, source, target
       this.container.addEventListener('click', function (e) {
-        var target = e.target
+        target = e.target
         if (
           target.classList.contains('css-update') ||
           target.classList.contains('js-update')
@@ -139,28 +139,40 @@
           sendMessageToContentScript(
             { type: 'updateResource', data: source },
             function (response) {
-              target.classList.remove('rotate')
+              // target.classList.remove('rotate')
               if (!response) {
                 console.error('no response')
                 return
               }
-
-              checkboxList.forEach(function (dom) {
-                var src = dom.value
-                var sub = response.filter(function (r) {
-                  return r.old === src
-                })
-                var parent = dom.parentElement.parentElement
-                var sibling = dom.nextElementSibling
-                if (sub.length) {
-                  dom.value = sub[0].new
-                  parent.title = sub[0].new
-                  sibling.innerHTML = truncStr(sub[0].new)
-                }
-              })
             }
           )
         }
+      })
+      chrome.runtime.onMessage.addListener(function (
+        response,
+        sender,
+        sendResponse
+      ) {
+        if (response && response.type === 'resource') {
+          target.classList.remove('rotate')
+          if(response.data && Array.isArray(response.data)) {
+            checkboxList.forEach(function (dom) {
+              var src = dom.value
+              var sub = response.data.filter(function (r) {
+                return r.old === src
+              })
+              var parent = dom.parentElement.parentElement
+              var sibling = dom.nextElementSibling
+              if (sub.length) {
+                dom.value = sub[0].new
+                parent.title = sub[0].new
+                sibling.innerHTML = truncStr(sub[0].new)
+              }
+            })
+          }
+        }
+
+        sendResponse('ok')
       })
     },
   }
