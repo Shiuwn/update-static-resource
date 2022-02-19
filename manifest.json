@@ -3,6 +3,7 @@
   "name": "Update Static Resource",
   "version": "1.0.0",
   "description": "资源更新",
+  "author":"shiu",
   "icons": {
     "16": "img/icon.png",
     "48": "img/icon.png",
