@@ -45,11 +45,49 @@
   function mountEl() {
     this.container = document.querySelector(this.el)
   }
-  // listDom 选中更新列表的dom
   // checkboxList 选中的资源dom
   // source 要更新的文件名数
   // target 点击的按钮dom
-  var listEl, checkboxList, files, btnEl;
+  var checkboxList, files, btnEl;
+  // 最近五次修改记录
+  var History = {
+    items: [],
+    add(item) {
+      if(typeof item !== 'string') return
+      var reg = /\?v=.*/
+      var uniqs = this.items.map(function(item) {
+        return item.replace(reg,'')
+      })
+      var base = item.replace(reg, '')
+      var index = uniqs.indexOf(base)
+      if(index>-1) {
+        this.items.splice(index, 1, item)
+        return this
+      }
+      if(this.items>=5) {
+        this.items.pop()
+      }
+      this.items.unshift(item)
+      return this
+    },
+    get() {
+      return this.items
+    },
+    clear() {
+      this.items.length = 0
+      chrome.storage.local.clear()
+    },
+    store() {
+      chrome.storage.local.set({history: History.get()}, function() {})
+      return this
+    },
+    sync() {
+      chrome.storage.local.get('history', function(res) {
+        History.items = res.history || []
+      })
+      return this
+    }
+  }
   /**
    * 给content发送文件
    * @param {HTMLElement} target 点击的目标target
@@ -58,8 +96,8 @@
   function sendFiles(target, container) {
     if (target.classList.contains('update-btn')) {
       btnEl = target
-      listEl = container.querySelector('.source-list')
-      checkboxList = listEl.querySelectorAll('input:checked')
+      checkboxList = container.querySelectorAll('input:checked')
+      if(!checkboxList) return
       btnEl.classList.add('rotate')
       checkboxList = toArray(checkboxList)
       files = checkboxList.map(function (el) {
@@ -87,6 +125,7 @@
       var input = this.container.querySelector('.search')
       var btn = this.container.querySelector('.search-btn')
       var clearBtn = this.container.querySelector('.clear-btn')
+      var historyBtn = this.container.querySelector('.history-btn')
       function search(str, dataset) {
         return dataset.filter(function (d) {
           var reg = new RegExp('.*' + str + '.*', 'g')
@@ -104,6 +143,11 @@
       }
       btn.addEventListener('click', searchHandler)
       clearBtn.addEventListener('click', function () {
+        if(historyBtn.classList.contains('open')) {
+          History.clear()
+          Recent.render()
+          return
+        }
         Result.clear()
         input.value = ''
       })
@@ -111,6 +155,17 @@
         if (e.code === 'Enter' && input.vlaue) {
           searchHandler()
         }
+      })
+      historyBtn.addEventListener('click', function() {
+        if(historyBtn.classList.contains('open')) {
+          historyBtn.classList.remove('open')
+          historyBtn.innerText = '历史记录'
+          Recent.clear()
+          return
+        }
+        historyBtn.classList.add('open')
+        historyBtn.innerText = '关闭历史'
+        Recent.render()
       })
     },
   }
@@ -131,10 +186,10 @@
         tpl = '<p style="text-align: center;">无结果</p>'
       }
       this.container.style.display = 'block'
-      this.container.querySelector('.result-content').innerHTML = tpl
+      this.container.querySelector('.content').innerHTML = tpl
     },
     clear() {
-      this.container.innerHTML = ''
+      this.container.querySelector('.content').innerHTML = ''
       this.container.style.display = 'none'
     },
     bindEvent() {
@@ -150,7 +205,7 @@
       this.bindEvent()
     },
     mountEl: mountEl,
-    render: function (data) {
+    render(data) {
       var tpl = render(data)
       this.container.innerHTML = tpl
     },
@@ -159,6 +214,37 @@
         sendFiles(e.target, this)
       }) 
     },
+  }
+  var Recent = {
+    el: '.history-mod',
+    init() {
+      this.mountEl()
+      this.bindEvent()
+      History.sync()
+    },
+    mountEl: mountEl,
+    render() {
+      var tpl = ''
+      var data = History.get()
+      if (data.length) {
+        tpl += '<ul class="source-list">'
+        tpl += renderList(data.map(function(d){return {src: d}}))
+        tpl += '</ul>'
+      } else {
+        tpl = '<p style="text-align: center;">无结果</p>'
+      }
+      this.container.style.display = 'block'
+      this.container.querySelector('.content').innerHTML = tpl
+    },
+    clear() {
+      this.container.querySelector('.content').innerHTML = ''
+      this.container.style.display = 'none'
+    },
+    bindEvent() {
+      this.container.addEventListener('click', function(e) {
+        sendFiles(e.target, this)
+      })
+    }
   }
   function sendMessageToContentScript(message, callback) {
     chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
@@ -197,6 +283,7 @@
           dom.value = sub[0].new
           parent.title = sub[0].new
           sibling.innerHTML = truncStr(sub[0].new)
+          History.add(sub[0].new).store()
         })
       }
     }
@@ -206,5 +293,6 @@
     Search.init()
     List.init()
     Result.init()
+    Recent.init()
   })
 })(window, document)
