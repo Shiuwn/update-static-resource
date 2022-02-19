@@ -132,6 +132,17 @@
           return reg.test(d.src)
         })
       }
+      function toggleRecent() {
+        if(historyBtn.classList.contains('open')) {
+          historyBtn.classList.remove('open')
+          historyBtn.innerText = '历史记录'
+          Recent.clear()
+          return
+        }
+        historyBtn.classList.add('open')
+        historyBtn.innerText = '关闭历史'
+        Recent.render()
+      }
       function searchHandler() {
         var value = input.value
         var data = Search.data || {}
@@ -140,6 +151,9 @@
         data = data.cssSource.concat(data.scriptSource)
         var result = search(value, data)
         Result.render(result)
+        if(Recent.open) {
+          toggleRecent()
+        }
       }
       btn.addEventListener('click', searchHandler)
       clearBtn.addEventListener('click', function () {
@@ -156,17 +170,7 @@
           searchHandler()
         }
       })
-      historyBtn.addEventListener('click', function() {
-        if(historyBtn.classList.contains('open')) {
-          historyBtn.classList.remove('open')
-          historyBtn.innerText = '历史记录'
-          Recent.clear()
-          return
-        }
-        historyBtn.classList.add('open')
-        historyBtn.innerText = '关闭历史'
-        Recent.render()
-      })
+      historyBtn.addEventListener('click', toggleRecent) 
     },
   }
   var Result = {
@@ -235,10 +239,12 @@
       }
       this.container.style.display = 'block'
       this.container.querySelector('.content').innerHTML = tpl
+      this.open = 1
     },
     clear() {
       this.container.querySelector('.content').innerHTML = ''
       this.container.style.display = 'none'
+      this.open = 0
     },
     bindEvent() {
       this.container.addEventListener('click', function(e) {
