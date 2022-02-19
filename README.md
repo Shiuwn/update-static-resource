@@ -1,4 +1,7 @@
 <h1 align="center">Update Static Resource</h1>
+
+## :sunny: 说明
+本项目是一个`Chrome`浏览器插件
 ## :apple: 安装
 打开`Chrome` 浏览器，在`chrome://extensions/` 页面中点击`加载已解压的扩展程序`加载本项目所在的文件夹，即可将本插件加载到浏览器中。当需要更新静态资源时，选中需要更新的静态资源，然后点击绿色的更新图标即可重新加载对应的静态资源。
 
