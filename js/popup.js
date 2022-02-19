@@ -181,19 +181,22 @@
     if (response && response.type === 'resource') {
       if(!btnEl) return
       btnEl.classList.remove('rotate')
+      if(btnEl.classList.contains('result-btn')) {
+        checkboxList = document.querySelectorAll('input[type="checkbox"]')
+        checkboxList = toArray(checkboxList)
+      }
       if (response.data && Array.isArray(response.data)) {
         checkboxList.forEach(function (dom) {
           var src = dom.value
           var sub = response.data.filter(function (r) {
             return r.old === src
           })
+          if(!sub.length) return
           var parent = dom.parentElement.parentElement
           var sibling = dom.nextElementSibling
-          if (sub.length) {
-            dom.value = sub[0].new
-            parent.title = sub[0].new
-            sibling.innerHTML = truncStr(sub[0].new)
-          }
+          dom.value = sub[0].new
+          parent.title = sub[0].new
+          sibling.innerHTML = truncStr(sub[0].new)
         })
       }
     }
