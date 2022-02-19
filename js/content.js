@@ -47,10 +47,9 @@
     var src = dom[prop]
     var type = prop === 'src' ? 'script' : 'css'
     var reg = /(\?v=.*)$/
-    var tag = prop === 'src' ? 'script' : 'link'
+    var tag = type === 'script' ? 'script' : 'link'
     var newSrc = src.replace(reg, '')
     newSrc = newSrc + '?v=' + Math.random().toString(16).slice(2)
-    // dom[prop] = newSrc
     var newDom = document.createElement(tag)
     if (tag === 'link') {
       newDom.rel = 'stylesheet'
@@ -74,7 +73,6 @@
         update(scripts, dom, newDom)
       }
     })
-    // return {old: src, new: newSrc, type: type}
   }
   function updateResource(data, sendResponse) {
     var subScripts = scripts.filter(function (script) {

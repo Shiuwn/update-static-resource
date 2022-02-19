@@ -24,15 +24,15 @@
     var tpl = ''
     if (request && request.cssSource) {
       tpl +=
-        '<h4>CSS 资源<span class="css-update btn-default"><img class="css-update" src="../img/icon.png" style="display: inline-block;width: 16px;vertical-align: top;margin-left: 8px;"/></span></h4>'
-      tpl += '<ul class="source-list css-list">'
+        '<h4>CSS 资源<span class="update-btn btn-default"><img class="update-btn" src="../img/icon.png" style="display: inline-block;width: 16px;vertical-align: top;margin-left: 8px;"/></span></h4>'
+      tpl += '<ul class="source-list">'
       tpl += renderList(request.cssSource)
       tpl += '</ul>'
     }
     if (request && request.scriptSource) {
       tpl +=
-        '<h4>JS 资源 <span class="js-update btn-default"><img class="js-update" src="../img/icon.png" style="display: inline-block;width: 16px;vertical-align: top;margin-left: 8px;"/></span></h4>'
-      tpl += '<ul class="source-list js-list">'
+        '<h4>JS 资源 <span class="update-btn btn-default"><img class="update-btn" src="../img/icon.png" style="display: inline-block;width: 16px;vertical-align: top;margin-left: 8px;"/></span></h4>'
+      tpl += '<ul class="source-list">'
       tpl += renderList(request.scriptSource)
       tpl += '</ul>'
     }
@@ -44,6 +44,37 @@
   }
   function mountEl() {
     this.container = document.querySelector(this.el)
+  }
+  // listDom 选中更新列表的dom
+  // checkboxList 选中的资源dom
+  // source 要更新的文件名数
+  // target 点击的按钮dom
+  var listEl, checkboxList, files, btnEl;
+  /**
+   * 给content发送文件
+   * @param {HTMLElement} target 点击的目标target
+   * @param {HTMLElement} container target 所在的容器
+   */
+  function sendFiles(target, container) {
+    if (target.classList.contains('update-btn')) {
+      btnEl = target
+      listEl = container.querySelector('.source-list')
+      checkboxList = listEl.querySelectorAll('input:checked')
+      btnEl.classList.add('rotate')
+      checkboxList = toArray(checkboxList)
+      files = checkboxList.map(function (el) {
+        return el.value
+      })
+      sendMessageToContentScript(
+        { type: 'updateResource', data: files },
+        function (response) {
+          if (!response) {
+            console.error('no response')
+            return
+          }
+        }
+      )
+    }
   }
   var Search = {
     el: '.search-mod',
@@ -87,6 +118,7 @@
     el: '.result-mod',
     init() {
       this.mountEl()
+      this.bindEvent()
     },
     mountEl: mountEl,
     render(data) {
@@ -99,12 +131,17 @@
         tpl = '<p style="text-align: center;">无结果</p>'
       }
       this.container.style.display = 'block'
-      this.container.innerHTML = tpl
+      this.container.querySelector('.result-content').innerHTML = tpl
     },
     clear() {
       this.container.innerHTML = ''
       this.container.style.display = 'none'
     },
+    bindEvent() {
+      this.container.addEventListener('click', function(e) {
+        sendFiles(e.target, this)
+      })
+    }
   }
   var List = {
     el: '.list-mod',
@@ -118,62 +155,9 @@
       this.container.innerHTML = tpl
     },
     bindEvent() {
-      var listDom, checkboxList, source, target
       this.container.addEventListener('click', function (e) {
-        target = e.target
-        if (
-          target.classList.contains('css-update') ||
-          target.classList.contains('js-update')
-        ) {
-          if (target.classList.contains('css-update')) {
-            listDom = this.querySelector('.css-list')
-          } else {
-            listDom = this.querySelector('.js-list')
-          }
-          checkboxList = listDom.querySelectorAll('input:checked')
-          target.classList.add('rotate')
-          checkboxList = toArray(checkboxList)
-          source = checkboxList.map(function (el) {
-            return el.value
-          })
-          sendMessageToContentScript(
-            { type: 'updateResource', data: source },
-            function (response) {
-              // target.classList.remove('rotate')
-              if (!response) {
-                console.error('no response')
-                return
-              }
-            }
-          )
-        }
-      })
-      chrome.runtime.onMessage.addListener(function (
-        response,
-        sender,
-        sendResponse
-      ) {
-        if (response && response.type === 'resource') {
-          target.classList.remove('rotate')
-          if(response.data && Array.isArray(response.data)) {
-            checkboxList.forEach(function (dom) {
-              var src = dom.value
-              var sub = response.data.filter(function (r) {
-                return r.old === src
-              })
-              var parent = dom.parentElement.parentElement
-              var sibling = dom.nextElementSibling
-              if (sub.length) {
-                dom.value = sub[0].new
-                parent.title = sub[0].new
-                sibling.innerHTML = truncStr(sub[0].new)
-              }
-            })
-          }
-        }
-
-        sendResponse('ok')
-      })
+        sendFiles(e.target, this)
+      }) 
     },
   }
   function sendMessageToContentScript(message, callback) {
@@ -188,7 +172,33 @@
     List.render(response)
     Search.data = response
   })
-
+  // 监听content发来的消息
+  chrome.runtime.onMessage.addListener(function (
+    response,
+    sender,
+    sendResponse
+  ) {
+    if (response && response.type === 'resource') {
+      if(!btnEl) return
+      btnEl.classList.remove('rotate')
+      if (response.data && Array.isArray(response.data)) {
+        checkboxList.forEach(function (dom) {
+          var src = dom.value
+          var sub = response.data.filter(function (r) {
+            return r.old === src
+          })
+          var parent = dom.parentElement.parentElement
+          var sibling = dom.nextElementSibling
+          if (sub.length) {
+            dom.value = sub[0].new
+            parent.title = sub[0].new
+            sibling.innerHTML = truncStr(sub[0].new)
+          }
+        })
+      }
+    }
+    sendResponse('ok')
+  })
   document.addEventListener('DOMContentLoaded', function () {
     Search.init()
     List.init()
